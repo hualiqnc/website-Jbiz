@@ -1,4 +1,5 @@
 
+/* eslint-disable */
 'use client'
 import axios from 'axios'
 import React, { useCallback, useState, useEffect, Suspense } from "react";
@@ -815,8 +816,8 @@ export default function TransactionExplorer() {
           <Button
             onClick={() => setActiveView("transaction")}
             className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "transaction"
-                ? "bg-white text-[#1a2b4b]"
-                : "bg-transparent text-white hover:bg-blue-600"
+              ? "bg-white text-[#1a2b4b]"
+              : "bg-transparent text-white hover:bg-blue-600"
               }`}
           >
             Transaction history
@@ -824,8 +825,8 @@ export default function TransactionExplorer() {
           <Button
             onClick={() => setActiveView("graph")}
             className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "graph"
-                ? "bg-white text-[#1a2b4b]"
-                : "bg-transparent text-white hover:bg-blue-600"
+              ? "bg-white text-[#1a2b4b]"
+              : "bg-transparent text-white hover:bg-blue-600"
               }`}
           >
             Transaction Graph

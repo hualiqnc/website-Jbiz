@@ -18,14 +18,8 @@ interface RecognizedAddress {
   components: AddressComponent[]
 }
 
-interface EthereumAddress {
-  address: string
-  label: string
-}
-
 export default function Component(): ReactElement {
   const [address, setAddress] = useState('')
-  const [open, setOpen] = useState(false)
   const [recognizedAddress, setRecognizedAddress] = useState<RecognizedAddress | null>(null)
   const [recentSearches, setRecentSearches] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -66,7 +60,6 @@ export default function Component(): ReactElement {
 
   const handleAddressSelect = (selectedAddress: string) => {
     setAddress(selectedAddress)
-    setOpen(false)
     setError(null)
   }
 

@@ -98,10 +98,9 @@ export default function TransactionExplorer() {
     };
 
     // Fetch latest blocks and their transactions
-    const fetchLatestTransactions = async () => {
+    const fetchLatestTransactions = useCallback(async () => {
         try {
             setIsLoading(true);
-
 
             // Get transactions from the latest blocks
             const response = await fetch(
@@ -124,7 +123,7 @@ export default function TransactionExplorer() {
                             fee: ethers.utils.formatEther(
                                 ethers.BigNumber.from(tx.gas).mul(ethers.BigNumber.from(tx.gasPrice))
                             ),
-                            timestamp: timestamp
+                            timestamp: timestamp,
                         };
                     })
                 );
@@ -133,26 +132,30 @@ export default function TransactionExplorer() {
         } catch (error) {
             console.error('Error fetching transactions:', error);
             toast({
-                title: "Error fetching transactions",
-                description: "Failed to fetch latest transactions.",
-                variant: "destructive",
+                title: 'Error fetching transactions',
+                description: 'Failed to fetch latest transactions.',
+                variant: 'destructive',
             });
         } finally {
             setIsLoading(false);
         }
-    };
+    }, []); // Ensure fetchLatestTransactions remains stable
 
-
-
-    // Effect to fetch data
+    // Effect to handle interval-based updates
     useEffect(() => {
         fetchLatestTransactions();
+
         const interval = setInterval(() => {
             fetchLatestTransactions();
         }, 150000); // Refresh every 2.5 minutes
 
-        return () => clearInterval(interval);
-    }, [currentPage]); //Refresh every page changes
+        return () => clearInterval(interval); // Cleanup interval on component unmount
+    }, [fetchLatestTransactions]); // Dependency is now fetchLatestTransactions only
+
+    // Effect to handle updates when currentPage changes
+    useEffect(() => {
+        fetchLatestTransactions(); // Fetch transactions whenever the page changes
+    }, [currentPage]); // Trigger only when currentPage changes
 
     // Effect to handle responsive design
     useEffect(() => {
@@ -383,8 +386,8 @@ export default function TransactionExplorer() {
                                             <button
                                                 onClick={() => handleMethodClick(tx.method)}
                                                 className={`px-3 py-1 rounded-full text-base font-medium w-25 h-10 flex items-center justify-center ${selectedMethod === tx.method
-                                                        ? 'bg-purple-100 text-[#F5B069] border-2 border-[#F5B069]'
-                                                        : 'bg-gray-100 text-gray-800 border border-gray-300'
+                                                    ? 'bg-purple-100 text-[#F5B069] border-2 border-[#F5B069]'
+                                                    : 'bg-gray-100 text-gray-800 border border-gray-300'
                                                     }`}
                                             >
                                                 {tx.method}

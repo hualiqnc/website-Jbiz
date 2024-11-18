@@ -1,7 +1,7 @@
 
 'use client'
 import axios from 'axios'
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
 import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
@@ -57,7 +57,7 @@ interface AddressInfo {
   privateNameTag: string; // User-defined tag
   multichainInfo: string;
   tokenHoldings: TokenHolding[]; // Token holdings
-  
+
 }
 
 const CircleNode = ({ data }: NodeProps) => (
@@ -79,14 +79,14 @@ const CircleNodePro = ({ data }: NodeProps) => (
 const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style = {}, markerEnd, data }: EdgeProps) => {
   const edgePath = `M${sourceX},${sourceY} L${targetX},${targetY}`;
   return (
-    <>
+    <Suspense>
       <path id={id} style={style} className="react-flow__edge-path" d={edgePath} markerEnd={markerEnd} />
       <text>
         <textPath href={`#${id}`} style={{ fontSize: 12, fill: "white" }} startOffset="50%" textAnchor="middle">
           {data.label}
         </textPath>
       </text>
-    </>
+    </Suspense>
   );
 };
 
@@ -114,11 +114,11 @@ const processTransactions = (transactions: ApiTransaction[], centralAddress: str
         y = Math.sin(angle) * radius;
         angle += angleStep;
       }
-    // Bảo vệ để tránh tạo node với nhãn không hợp lệ
-    if (!address || address.length < 6) {
-      console.warn("Invalid address passed to addNode:", address);
-      return; // Dừng nếu địa chỉ không hợp lệ
-    }
+      // Bảo vệ để tránh tạo node với nhãn không hợp lệ
+      if (!address || address.length < 6) {
+        console.warn("Invalid address passed to addNode:", address);
+        return; // Dừng nếu địa chỉ không hợp lệ
+      }
 
       newNodes.push({
         id: address,
@@ -172,7 +172,7 @@ const forceSimulation = (nodes: Node[], edges: Edge[]) => {
         const dy = nodes[j].position.y - nodes[i].position.y;
         const distanceSq = dx * dx + dy * dy;
         if (distanceSq === 0) continue;
-        
+
         const force = REPULSION / Math.sqrt(distanceSq);
         const forceX = force * dx / distanceSq;
         const forceY = force * dy / distanceSq;
@@ -191,7 +191,7 @@ const forceSimulation = (nodes: Node[], edges: Edge[]) => {
         const dx = target.position.x - source.position.x;
         const dy = target.position.y - source.position.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         const force = ATTRACTION * Math.log(distance + 1);
         const forceX = force * dx / distance;
         const forceY = force * dy / distance;
@@ -231,7 +231,7 @@ export default function TransactionExplorer() {
     fundedBy: "",          // Initialized as an empty string
     privateNameTag: "",    // Initialized as an empty string
     multichainInfo: "",    // Initialized as an empty string
-    tokenHoldings: [] 
+    tokenHoldings: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const [currentAddress] = useState<string>("");
@@ -261,10 +261,10 @@ export default function TransactionExplorer() {
   const [processedAddresses, setProcessedAddresses] = useState<Set<string>>(new Set())
   const [tokenHoldings, setTokenHoldings] = useState<TokenHolding[]>([]); // Correctly define the state
 
-const ETHERSCAN_API_KEY = "RQ1E2Y5VTM4EKCNZTDHD58UCIXMPD34N1J"; 
+  const ETHERSCAN_API_KEY = "RQ1E2Y5VTM4EKCNZTDHD58UCIXMPD34N1J";
 
   useEffect(() => {
-    const newAddress = searchParams.get('address');
+    const newAddress = searchParams?.get('address');
     if (newAddress) {
       setAddress(newAddress);
       fetchAddressInfo(newAddress);
@@ -276,44 +276,44 @@ const ETHERSCAN_API_KEY = "RQ1E2Y5VTM4EKCNZTDHD58UCIXMPD34N1J";
     setLoading(true);
     setError(null);
     try {
-        const response = await axios.get(`https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress=${token}&address=${address}&tag=latest&apikey=5IE2SF8P8J318KF81WMA1XKWC1XI4IQGU6`);
-        
-        const balance = response.data.result;
-        const tokenHoldingsData: TokenHolding[] = [{
-            name: "Token Name", // Placeholder for token name
-            symbol: "Token Symbol", // Placeholder for token symbol
-            amount: parseFloat(balance) / 1e18 // Adjust the divisor based on the token's decimals
-        }];
+      const response = await axios.get(`https://api.bscscan.com/api?module=account&action=tokenbalance&contractaddress=${token}&address=${address}&tag=latest&apikey=5IE2SF8P8J318KF81WMA1XKWC1XI4IQGU6`);
 
-        setTokenHoldings(tokenHoldingsData);
+      const balance = response.data.result;
+      const tokenHoldingsData: TokenHolding[] = [{
+        name: "Token Name", // Placeholder for token name
+        symbol: "Token Symbol", // Placeholder for token symbol
+        amount: parseFloat(balance) / 1e18 // Adjust the divisor based on the token's decimals
+      }];
+
+      setTokenHoldings(tokenHoldingsData);
     } catch (err) {
-        console.error('Error fetching token holdings:', err);
-        setError('Error fetching data');
+      console.error('Error fetching token holdings:', err);
+      setError('Error fetching data');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
-const fetchMultichainData = async () => {
+  };
+  const fetchMultichainData = async () => {
     setLoading(true);
     setError(null);
     try {
-        const response = await axios.get(`https://deep-index.moralis.io/api/v2/${walletAddress}/erc20/${tokenAddress}`, {
-            headers: {
-                'X-API-Key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjdlYWZlZGFlLWQxYzktNGZiNS05OWJkLTRiNmU0ODMzMGM3YiIsIm9yZ0lkIjoiNDE2NTM4IiwidXNlcklkIjoiNDI4MTQ4IiwidHlwZSI6IlBST0pFQ1QiLCJ0eXBlSWQiOiI5MWE1M2YyZS00OGYxLTRiOTEtOTAyYy1kMTM3ZGFiOWQ0YTYiLCJpYXQiOjE3MzE4NzMzMDUsImV4cCI6NDg4NzYzMzMwNX0.eO0Dk38ZaLy-HgaUAYU-tou4ObTfdWQU9JBLMTQ_Dmo', 
-            },
-        });
-        setTokenHoldings(prev => [...prev, ...response.data]); // Combine with existing token holdings
+      const response = await axios.get(`https://deep-index.moralis.io/api/v2/${walletAddress}/erc20/${tokenAddress}`, {
+        headers: {
+          'X-API-Key': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJub25jZSI6IjdlYWZlZGFlLWQxYzktNGZiNS05OWJkLTRiNmU0ODMzMGM3YiIsIm9yZ0lkIjoiNDE2NTM4IiwidXNlcklkIjoiNDI4MTQ4IiwidHlwZSI6IlBST0pFQ1QiLCJ0eXBlSWQiOiI5MWE1M2YyZS00OGYxLTRiOTEtOTAyYy1kMTM3ZGFiOWQ0YTYiLCJpYXQiOjE3MzE4NzMzMDUsImV4cCI6NDg4NzYzMzMwNX0.eO0Dk38ZaLy-HgaUAYU-tou4ObTfdWQU9JBLMTQ_Dmo',
+        },
+      });
+      setTokenHoldings(prev => [...prev, ...response.data]); // Combine with existing token holdings
     } catch (err) {
-        console.error('Error fetching multichain data:', err);
-        setError('Error fetching data');
+      console.error('Error fetching multichain data:', err);
+      setError('Error fetching data');
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
-const fetchAddressInfo = async (address: string) => {
-  setLoading(true);
-  setError(null);
-  try {
+  };
+  const fetchAddressInfo = async (address: string) => {
+    setLoading(true);
+    setError(null);
+    try {
       // Fetch balance
       const balanceResponse = await fetch(`https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${ETHERSCAN_API_KEY}`);
       const balanceData = await balanceResponse.json();
@@ -332,12 +332,12 @@ const fetchAddressInfo = async (address: string) => {
       let totalSent = 0;
       let fundedBy = 'N/A'; // Default value for funded by
 
-    
+
 
       // Convert timestamps to human-readable format
       const formatDate = (timestamp: string): string => {
-          const date = new Date(parseInt(timestamp) * 1000); // Convert seconds to milliseconds
-          return date.toLocaleString(); // Format date as string
+        const date = new Date(parseInt(timestamp) * 1000); // Convert seconds to milliseconds
+        return date.toLocaleString(); // Format date as string
       };
 
       const firstSeen = transactions.length > 0 ? formatDate(transactions[0].timeStamp) : 'N/A';
@@ -347,53 +347,53 @@ const fetchAddressInfo = async (address: string) => {
       const tokenHoldings: { [key: string]: { name: string; symbol: string; amount: number } } = {};
 
       tokenTransactions.forEach((tokenTx: any) => {
-          const tokenSymbol = tokenTx.tokenSymbol;
-          const tokenName = tokenTx.tokenName;
-          const value = parseFloat(tokenTx.value);
+        const tokenSymbol = tokenTx.tokenSymbol;
+        const tokenName = tokenTx.tokenName;
+        const value = parseFloat(tokenTx.value);
 
-          if (tokenTx.to.toLowerCase() === address.toLowerCase()) {
-              // Received tokens
-              if (!tokenHoldings[tokenSymbol]) {
-                  tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
-              }
-              tokenHoldings[tokenSymbol].amount += value; // Update amount
-          } else if (tokenTx.from.toLowerCase() === address.toLowerCase()) {
-              // Sent tokens
-              if (!tokenHoldings[tokenSymbol]) {
-                  tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
-              }
-              tokenHoldings[tokenSymbol].amount -= value; // Update amount
+        if (tokenTx.to.toLowerCase() === address.toLowerCase()) {
+          // Received tokens
+          if (!tokenHoldings[tokenSymbol]) {
+            tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
           }
+          tokenHoldings[tokenSymbol].amount += value; // Update amount
+        } else if (tokenTx.from.toLowerCase() === address.toLowerCase()) {
+          // Sent tokens
+          if (!tokenHoldings[tokenSymbol]) {
+            tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
+          }
+          tokenHoldings[tokenSymbol].amount -= value; // Update amount
+        }
       });
 
       const tokenHoldingsArray: TokenHolding[] = Object.values(tokenHoldings);
-      setTokenHoldings(tokenHoldingsArray); 
+      setTokenHoldings(tokenHoldingsArray);
 
       setAddressInfo({
-          address,
-          gas: '0', // Placeholder
-          balance: (parseFloat(balance) / 1e18).toString(), // Convert Wei to Ether
-          totalSent: totalSent.toString(),
-          value: '0', // Placeholder for value in USD
-          firstSeen,
-          lastSeen,
-          fundedBy, // Set the fundedBy address
-          privateNameTag: 'N/A', // Use user-defined tag
-          multichainInfo: 'N/A', // Placeholder for multichain info
-          tokenHoldings: tokenHoldingsArray // Set the token holdings
+        address,
+        gas: '0', // Placeholder
+        balance: (parseFloat(balance) / 1e18).toString(), // Convert Wei to Ether
+        totalSent: totalSent.toString(),
+        value: '0', // Placeholder for value in USD
+        firstSeen,
+        lastSeen,
+        fundedBy, // Set the fundedBy address
+        privateNameTag: 'N/A', // Use user-defined tag
+        multichainInfo: 'N/A', // Placeholder for multichain info
+        tokenHoldings: tokenHoldingsArray // Set the token holdings
       });
-  } catch (error: unknown) {
+    } catch (error: unknown) {
       if (error instanceof Error) {
-          console.error(`Error fetching address info for ${address}:`, error);
-          setError(error.message);
+        console.error(`Error fetching address info for ${address}:`, error);
+        setError(error.message);
       } else {
-          console.error(`Unexpected error fetching address info for ${address}:`, error);
-          setError("An unexpected error occurred.");
+        console.error(`Unexpected error fetching address info for ${address}:`, error);
+        setError("An unexpected error occurred.");
       }
-  } finally {
+    } finally {
       setLoading(false);
-  }
-};
+    }
+  };
 
   const fetchTransactionData = async (address: string, updateSearched: boolean = false, parentPosition: { x: number, y: number } = { x: 0, y: 0 }) => {
     setIsLoading(true)
@@ -473,7 +473,7 @@ const fetchAddressInfo = async (address: string) => {
             source: edgeData.source,
             target: edgeData.target,
             type: 'custom',
-            data: { 
+            data: {
               label: `${edgeData.totalAmount.toFixed(4)} ETH`,
               transactions: edgeData.transactions //moi update
             },
@@ -612,7 +612,7 @@ const fetchAddressInfo = async (address: string) => {
     let filteredTransactions = apiTransactions;
 
     if (filterType !== "all") {
-      filteredTransactions = filteredTransactions.filter(tx => 
+      filteredTransactions = filteredTransactions.filter(tx =>
         filterType === "in" ? tx.to === currentAddress : tx.from === currentAddress
       );
     }
@@ -637,7 +637,7 @@ const fetchAddressInfo = async (address: string) => {
       filteredTransactions = filteredTransactions.filter(tx => tx.timestamp <= endTimestamp);
     }
 
-    
+
     const { nodes, edges } = processTransactions(filteredTransactions, currentAddress);
     const simulatedLayout = forceSimulation(nodes, edges);
     setNodes(simulatedLayout.nodes);
@@ -675,9 +675,9 @@ const fetchAddressInfo = async (address: string) => {
   const currentTransactions = selectedEdge ? selectedEdge.transactions.slice(startIndex, endIndex) : [];
 
   return (
-    <>
-          {/* Header section with wallet address information */}
-          <div className="bg-primaryGray p-4 sm:p-6 text-white sm:px-8 lg:px-20 font-exo2">
+    <Suspense>
+      {/* Header section with wallet address information */}
+      <div className="bg-primaryGray p-4 sm:p-6 text-white sm:px-8 lg:px-20 font-exo2">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
           <h1 className="text-xl sm:text-2xl font-semibold font-quantico">Address Information</h1>
         </div>
@@ -707,7 +707,7 @@ const fetchAddressInfo = async (address: string) => {
           {/* Main content area with transaction graph and table */}
         </div>
         {/* Main content area */}
-       
+
       </div>
       <div className={` bg-[#1C2128] text-white font-exo2`}>
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -728,43 +728,42 @@ const fetchAddressInfo = async (address: string) => {
                   <p>${addressInfo.value} USD</p>
                 </div>
                 <div>
-                <p className="text-muted-foreground mb-2 font-semibold">TOKEN HOLDINGS:</p>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsTokenHoldingsExpanded(!isTokenHoldingsExpanded)}
-                  className="w-full justify-between"
-                >
-                  <span>
-                    {tokenHoldings.length
-                      ? `$${tokenHoldings.length * 1000} ( ${tokenHoldings.length} tokens )`
-                      : "No tokens found"}
-                  </span>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform duration-200 ${
-                      isTokenHoldingsExpanded ? "rotate-180" : ""
-                    }`}
-                  />
-                </Button>
+                  <p className="text-muted-foreground mb-2 font-semibold">TOKEN HOLDINGS:</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsTokenHoldingsExpanded(!isTokenHoldingsExpanded)}
+                    className="w-full justify-between"
+                  >
+                    <span>
+                      {tokenHoldings.length
+                        ? `$${tokenHoldings.length * 1000} ( ${tokenHoldings.length} tokens )`
+                        : "No tokens found"}
+                    </span>
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${isTokenHoldingsExpanded ? "rotate-180" : ""
+                        }`}
+                    />
+                  </Button>
 
-                {isTokenHoldingsExpanded && (
-                  <div className="mt-2 p-2 bg-muted rounded-md">
-                    {tokenHoldings.length ? (
-                      <ul className="space-y-2">
-                        {tokenHoldings.map((token, index) => (
-                          <li key={index}>
-                            <p className="font-semibold">
-                              {token.name} ({token.symbol})
-                            </p>
-                            <p>{token.amount}</p>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>No token holdings available.</p>
-                    )}
-                  </div>
-                )}
-              </div>
+                  {isTokenHoldingsExpanded && (
+                    <div className="mt-2 p-2 bg-muted rounded-md">
+                      {tokenHoldings.length ? (
+                        <ul className="space-y-2">
+                          {tokenHoldings.map((token, index) => (
+                            <li key={index}>
+                              <p className="font-semibold">
+                                {token.name} ({token.symbol})
+                              </p>
+                              <p>{token.amount}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>No token holdings available.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -778,29 +777,29 @@ const fetchAddressInfo = async (address: string) => {
                     Private name tag:
                   </span>
                   <span className="bg-[#F5B056] text-gray-800 px-3 py-1 rounded-md">
-                  {addressInfo.privateNameTag || "N/A"}
+                    {addressInfo.privateNameTag || "N/A"}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-bold">First seen:</span>
                   <span>{addressInfo.firstSeen || "N/A"}</span>
-                  </div>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600 font-bold">Last seen:</span>
                   <span>{addressInfo.lastSeen || "N/A"}</span>
-                  </div>
-                  <div>
-      <p className="text-gray-600 mb-1 font-bold">Funded by:</p>
-      <a href="#" className="text-blue-500 hover:underline">
-        {addressInfo.fundedBy || "N/A"}
-      </a>
-    </div>
+                </div>
+                <div>
+                  <p className="text-gray-600 mb-1 font-bold">Funded by:</p>
+                  <a href="#" className="text-blue-500 hover:underline">
+                    {addressInfo.fundedBy || "N/A"}
+                  </a>
+                </div>
                 <div>
                   <p className="text-gray-600 mb-1 font-bold">
                     Multichain info:
                   </p>
                   <span className="bg-[#F5B056] text-gray-800 px-3 py-1 rounded-md inline-block">
-                  {addressInfo.multichainInfo || "N/A"}
+                    {addressInfo.multichainInfo || "N/A"}
                   </span>
                 </div>
               </div>
@@ -808,34 +807,32 @@ const fetchAddressInfo = async (address: string) => {
           </div>
         </main>
       </div>
-      
-      
+
+
       {/* Transaction graph and history buttons */}
       <div className="flex justify-between items-center w-full bg-[#1a2b4b] p-4 border-b border-blue-700">
         <div className="flex space-x-2">
-          <Button 
+          <Button
             onClick={() => setActiveView("transaction")}
-            className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${
-              activeView === "transaction" 
-                ? "bg-white text-[#1a2b4b]" 
+            className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "transaction"
+                ? "bg-white text-[#1a2b4b]"
                 : "bg-transparent text-white hover:bg-blue-600"
-            }`}
+              }`}
           >
             Transaction history
           </Button>
-          <Button 
+          <Button
             onClick={() => setActiveView("graph")}
-            className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${
-              activeView === "graph" 
-                ? "bg-white text-[#1a2b4b]" 
+            className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "graph"
+                ? "bg-white text-[#1a2b4b]"
                 : "bg-transparent text-white hover:bg-blue-600"
-            }`}
+              }`}
           >
             Transaction Graph
           </Button>
         </div>
       </div>
- 
+
       {/* Main content area with transaction graph and table */}
       <div className="w-full h-full flex flex-col relative z-10 font-exo2 mb-8">
         {isLoading && (
@@ -850,7 +847,7 @@ const fetchAddressInfo = async (address: string) => {
             <span className="block sm:inline"> {error}</span>
           </div>
         )}
-        
+
         <div className="flex bg-[#1C2128] px-2 py-4 border-b border-b-white">
           {/* Add header content if needed */}
         </div>
@@ -858,7 +855,7 @@ const fetchAddressInfo = async (address: string) => {
           {activeView === "transaction" ? (
             <HistoryTable address={address || ""} />
           ) : (
-          <div className="flex-grow flex">
+            <div className="flex-grow flex">
               {activeView === "graph" && (
                 <div className="w-full h-[600px] border border-gray-300">
                   <ReactFlow
@@ -877,7 +874,7 @@ const fetchAddressInfo = async (address: string) => {
                   </ReactFlow>
                 </div>
               )}
-              
+
             </div>
           )}
         </div>
@@ -982,6 +979,6 @@ const fetchAddressInfo = async (address: string) => {
           </div>
         )}
       </div>
-    </>
+    </Suspense>
   )
 }

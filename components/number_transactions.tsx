@@ -1,50 +1,44 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 
 const TransactionDashboard: React.FC = () => {
-    const [totalTransactions, setTotalTransactions] = useState<number>(0);  // State to store total transactions
-    const [loading, setLoading] = useState<boolean>(true);  // State to manage loading status
-    const [error, setError] = useState<string | null>(null);  // State to store error message
+    const [totalTransactions, setTotalTransactions] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
 
     const API_URL = `https://api.etherscan.io/api?module=proxy&action=eth_blockNumber&apikey=${process.env.NEXT_PUBLIC_API_KEY}`;
 
-    const fetchTotalTransactions = async () => {
-        setLoading(true);  // Set loading to true before calling the API
+    const fetchTotalTransactions = useCallback(async () => {
+        setLoading(true);
         try {
-            const response = await axios.get(API_URL);  // Call the API to get the total transactions
-            const totalTxCount = response.data.result;  // Assume you have a way to get the transaction count from the API
-
-            setTotalTransactions(Number(totalTxCount));  // Store the total transaction count in the state
+            const response = await axios.get(API_URL);
+            const totalTxCount = response.data.result;
+            setTotalTransactions(Number(totalTxCount));
         } catch (err) {
-            setError('Error fetching data from the API');  // Set error message if there’s an issue
+            console.error(err); // Optional: log the error for debugging
+            setError('Error fetching data from the API');
         } finally {
-            setLoading(false);  // Set loading to false once the API call is complete
+            setLoading(false);
         }
-    };
+    }, [API_URL]);
 
     useEffect(() => {
-        fetchTotalTransactions();  // Call the function when the component mounts
+        fetchTotalTransactions();
+        const interval = setInterval(fetchTotalTransactions, 60000); // Fetch every 60 seconds
 
-        // Set an interval to fetch the total transactions every 10 seconds
-        const interval = setInterval(() => {
-            fetchTotalTransactions();  // Re-fetch the total transactions every 10 seconds
-        }, 60000);  // 10000 ms = 10 seconds
-
-        // Cleanup function to clear the interval when the component unmounts
-        return () => clearInterval(interval);
-    }, []);  // The effect runs only once when the component mounts
+        return () => clearInterval(interval); // Cleanup interval on unmount
+    }, [fetchTotalTransactions]);
 
     if (loading) {
-        return <div>Loading data...</div>;  // Show loading message while waiting for data
+        return <div>Loading data...</div>;
     }
 
     if (error) {
-        return <div>{error}</div>;  // Show error message if there was an issue fetching data
+        return <div>{error}</div>;
     }
 
-    // Render total transaction count once the data is successfully fetched
     return (
         <div className="flex flex-col items-center p-4 ">
             <div className="bg-white shadow-md rounded-lg p-4 m-2 w-80">

@@ -1,4 +1,3 @@
-
 /* eslint-disable */
 'use client'
 import axios from 'axios'
@@ -77,17 +76,18 @@ const CircleNodePro = ({ data }: NodeProps) => (
   </div>
 );
 
+
 const CustomEdge = ({ id, sourceX, sourceY, targetX, targetY, style = {}, markerEnd, data }: EdgeProps) => {
-  const edgePath = `M${sourceX},${sourceY} L${targetX},${targetY}`;
+  const edgePath = `M${sourceX},${sourceY} C${sourceX + (targetX - sourceX) / 2},${sourceY} ${sourceX + (targetX - sourceX) / 2},${targetY} ${targetX},${targetY}`;
   return (
-    <Suspense>
+    <>
       <path id={id} style={style} className="react-flow__edge-path" d={edgePath} markerEnd={markerEnd} />
       <text>
         <textPath href={`#${id}`} style={{ fontSize: 12, fill: "white" }} startOffset="50%" textAnchor="middle">
           {data.label}
         </textPath>
       </text>
-    </Suspense>
+    </>
   );
 };
 
@@ -330,8 +330,8 @@ export default function TransactionExplorer() {
       const tokenData = await tokenResponse.json();
       const tokenTransactions = tokenData.result;
 
-      let totalSent = 0;
-      let fundedBy = 'N/A'; // Default value for funded by
+      const totalSent = 0;
+      const fundedBy = 'N/A'; // Default value for funded by
 
 
 
@@ -347,25 +347,29 @@ export default function TransactionExplorer() {
       // Calculate token holdings
       const tokenHoldings: { [key: string]: { name: string; symbol: string; amount: number } } = {};
 
-      tokenTransactions.forEach((tokenTx: any) => {
-        const tokenSymbol = tokenTx.tokenSymbol;
-        const tokenName = tokenTx.tokenName;
-        const value = parseFloat(tokenTx.value);
+      if (Array.isArray(tokenTransactions)) {
+        tokenTransactions.forEach((tokenTx) => {
+          const tokenSymbol = tokenTx.tokenSymbol;
+          const tokenName = tokenTx.tokenName;
+          const value = parseFloat(tokenTx.value);
 
-        if (tokenTx.to.toLowerCase() === address.toLowerCase()) {
-          // Received tokens
-          if (!tokenHoldings[tokenSymbol]) {
-            tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
+          if (tokenTx.to.toLowerCase() === address.toLowerCase()) {
+            // Received tokens
+            if (!tokenHoldings[tokenSymbol]) {
+              tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 };
+            }
+            tokenHoldings[tokenSymbol].amount += value;
+          } else if (tokenTx.from.toLowerCase() === address.toLowerCase()) {
+            // Sent tokens
+            if (!tokenHoldings[tokenSymbol]) {
+              tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 };
+            }
+            tokenHoldings[tokenSymbol].amount -= value;
           }
-          tokenHoldings[tokenSymbol].amount += value; // Update amount
-        } else if (tokenTx.from.toLowerCase() === address.toLowerCase()) {
-          // Sent tokens
-          if (!tokenHoldings[tokenSymbol]) {
-            tokenHoldings[tokenSymbol] = { name: tokenName, symbol: tokenSymbol, amount: 0 }; // Use amount
-          }
-          tokenHoldings[tokenSymbol].amount -= value; // Update amount
-        }
-      });
+        });
+      } else {
+        console.error('tokenTransactions is not an array:', tokenTransactions);
+      }
 
       const tokenHoldingsArray: TokenHolding[] = Object.values(tokenHoldings);
       setTokenHoldings(tokenHoldingsArray);
@@ -473,14 +477,14 @@ export default function TransactionExplorer() {
             id: `e${edgeId}`,
             source: edgeData.source,
             target: edgeData.target,
-            type: 'custom',
+            type: 'smoothstep', // Change to 'smoothstep' for curved edges
             data: {
               label: `${edgeData.totalAmount.toFixed(4)} ETH`,
-              transactions: edgeData.transactions //moi update
+              transactions: edgeData.transactions
             },
             markerEnd: { type: MarkerType.ArrowClosed },
-            style: { stroke: '#60a5fa', strokeWidth: 3, curvature: 0.2 }
-          })
+            style: { stroke: '#60a5fa', strokeWidth: 3 } // Remove the 'curvature' property
+          });
         })
 
         // Update processed addresses
@@ -676,7 +680,7 @@ export default function TransactionExplorer() {
   const currentTransactions = selectedEdge ? selectedEdge.transactions.slice(startIndex, endIndex) : [];
 
   return (
-    <Suspense>
+    <Suspense fallback={<div>Loading...</div>}>
       {/* Header section with wallet address information */}
       <div className="bg-primaryGray p-4 sm:p-6 text-white sm:px-8 lg:px-20 font-exo2">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-2 sm:space-y-0">
@@ -816,8 +820,8 @@ export default function TransactionExplorer() {
           <Button
             onClick={() => setActiveView("transaction")}
             className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "transaction"
-              ? "bg-white text-[#1a2b4b]"
-              : "bg-transparent text-white hover:bg-blue-600"
+                ? "bg-white text-[#1a2b4b]"
+                : "bg-transparent text-white hover:bg-blue-600"
               }`}
           >
             Transaction history
@@ -825,8 +829,8 @@ export default function TransactionExplorer() {
           <Button
             onClick={() => setActiveView("graph")}
             className={`font-bold py-2 px-4 rounded-t-lg transition duration-200 ease-in-out ${activeView === "graph"
-              ? "bg-white text-[#1a2b4b]"
-              : "bg-transparent text-white hover:bg-blue-600"
+                ? "bg-white text-[#1a2b4b]"
+                : "bg-transparent text-white hover:bg-blue-600"
               }`}
           >
             Transaction Graph
